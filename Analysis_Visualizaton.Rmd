@@ -28,27 +28,36 @@ head(listings)
 head(listings_detailed)
 
 ```
-I first select data fields pertaining to my question of interest from the main dataset and also extract the review-score data from the listings_detailed dataset and join it to the main dataset to capture the review scores. 
+I first select data fields pertaining to my question of interest from the main dataset and also extract the review-score data from the listings_detailed dataset and join it to the main dataset to capture the rating. 
 ```{r}
-listings %>% 
-#listings_detailed %>% select('id', 'review_scores_rating')
-
+listings = listings %>% select('id', 'name', 'host_id', 'neighbourhood', 'latitude', 'longitude', 'room_type', 'price', 'number_of_reviews', 'calculated_host_listings_count', 'availability_365') 
+head(listings, 3)
+```   
+Join the data and clean up the long names into short, to-the-point names for the columns.  
+```{r}
+rating = listings_detailed %>% select('id', 'review_scores_rating')
+listings = inner_join(listings, rating, by = 'id')
+listings = listings %>% rename(host_listings = 'calculated_host_listings_count', availability = 'availability_365', rating = 'review_scores_rating')
+head(listings)
 ```
 
-
+Let's get a general sense of the data:
 ```{r}
+str(listings)
+summary(listings)
+colSums(is.na(listings))
 ```
-
+As we can see, the rating field has 2373 NULL/NaN values making up about 30% of all the data.  
+For general analysis, we will keep the data for sure, but when we are considering rating alone, we will omit the null value.  
+This sort of correlates with the number of reviews having 0 values when checked: 
 
 ```{r}
+listings %>% filter(number_of_reviews==0) %>% summarise(count = n())
 ```
-
-
-```{r}
-```
-
+Let's look at the General Distribution of the Prices to get a feel for the pricing landscape: 
 
 ```{r}
+
 ```
 
 
