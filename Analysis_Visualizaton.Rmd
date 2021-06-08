@@ -71,16 +71,23 @@ listings %>% filter(price < 500) %>% summarise(count = n(), under_500_pct = coun
 
 ```{r}
 listings %>% filter(price < 500) %>% ggplot(aes(x = price)) +
-  geom_histogram(aes(y = ..density..), color = "blue", fill = "darkseagreen3") + geom_density(alpha = .2, fill="chartreuse") + xlab('Price ($)') + ylab('Density') + ggtitle('Price Distribution') 
+  geom_histogram(aes(y = ..density..), color = "blue", fill = "darkseagreen3") + geom_density(alpha = .2, fill="chartreuse") + xlab('Price ($)') + ylab('Density') + ggtitle('Price Distribution') + theme_bw() 
 ```
 As can be seen, the distribution is right skewed meaning that the very few listings priced at very high amounts influence the shape whereas we can see from the plot that most of the listings is centered around $100 and is under $200.  From the summary info before, we know that the median is $114 and mean is $189 which is pretty affordable keeping in mind that this is the capital city of the United States.  Effects from COVID-19 probably influenced the cost to be lower than what's considered normal in a metropolitan area.  The limitation of the dataset is that only the past 12 months were provided by the organization.  
+
+
+Which Room type has the most listings? 
+```{r}
+listings %>% group_by(room_type) %>% summarise(count = sum(n())) %>% arrange(desc(count)) %>% ggplot(aes(x=reorder(room_type, -count), y=count)) + geom_bar(stat='identity', color = 'lightcoral', fill = 'lightcoral') + ylab('# of Listings') + xlab('Room Type') + ggtitle('72% of Listings are Entire Home/Apt') + theme_bw() 
+```
 
 
 Let's look at the Property/Room Type and how it affects price distribution:  
 
 ```{r}
-listings %>% filter(price < 300) %>% ggplot(aes(x=price, group = room_type, fill=room_type)) + geom_density(adjust = 1.5, alpha =.4) + xlab('Price ($)') + ylab('% of Total') + ggtitle('Price Density by Room Type') 
+listings %>% filter(price < 300) %>% ggplot(aes(x=price, group = room_type, fill=room_type)) + geom_density(adjust = 1.5, alpha =.4) + xlab('Price ($)') + ylab('% of Total') + ggtitle('Price Density by Room Type') + theme_bw() 
 ```
+
 What is the average price per Neighborhood?  
 
 ```{r}
@@ -93,23 +100,31 @@ high_10_price %>%
 
 
 ```{r}
-#low_10_price = listings %>% group_by(neighbourhood) %>% summarise(avg_price = mean(price)) %>% slice_min(avg_price, n =10)
+low_10_price = listings %>% group_by(neighbourhood) %>% summarise(avg_price = mean(price)) %>% slice_min(avg_price, n =10)
 
 low_10_price %>%
   ggplot(aes(x=reorder(neighbourhood, -avg_price), y=avg_price)) + geom_bar(stat='identity', color = 'palegreen3', fill = 'palegreen3') + scale_y_continuous(limits = c(0, 200)) + coord_flip() + geom_text(aes(label= round(avg_price)), nudge_y=-20, color='black') + ylab('Avg price ($)') + xlab('Neighborhood') + ggtitle('Lowest Avg. Price by Neighborhood') + theme_bw() + theme(text=element_text(size = 8))
 ```
 
+Since the dataset was missing Neighborhood Group information making it difficult to group the 39 neighborhoods present in the data to show trends in the landscape, I searched and found that Washington, D.C groups its neighborhoods in 8 wards, historically.  So I first populated the neighborhoods data file containing the 39 neighborhood names with the corresponding ward based off of Wikipedia and publicly available city information.  Then I joined it to the main listings dataset to capture the ward/neighborhood grouping factor as a new field.  
 
 ```{r}
-
+neighbourhoods = read.csv('./neighbourhoods.csv')
+head(neighbourhoods, 2)
+listings = inner_join(listings, neighbourhoods, by = 'neighbourhood')
+head(listings, 2)
 ```
-
+Now that we have ward info - a way to group the neighborhoods, let's see the average price by the ward: 
 
 ```{r}
+ward_avg_price = listings %>% group_by(ward) %>% summarise(avg_price = mean(price)) %>% arrange(avg_price)
+ward_avg_price %>%
+  ggplot(aes(x=reorder(ward, avg_price), y=avg_price)) + geom_bar(stat='identity', color = 'palegreen3', fill = 'palegreen3')  + geom_text(aes(label= round(avg_price)), nudge_y=-20, color='black') + ylab('Avg price ($)') + xlab('Neighborhood Group') + ggtitle('Daily Average Price by Neighborhood') + theme_bw()
 ```
-
+Being the Capital city, a unique characteristic to Washington D.C is that it is one of the most visited destinations in the world and most who visit it, if not all, visit the landmarks around the National Mall which has been rated as the most trafficked landmark area.  Many public and large events take place for various causes.  Therefore, I wanted to explore if listings located closer to this landmark was more popular or more likely to be booked (demand) and also if there was correlation between the price and the proximity. So I found out the National Mall coordinates (38.8875° N, 77.0364° W) and created a new proximity column to each listings called mall_proximity.  
 
 ```{r}
+head(listings)
 ```
 
 
