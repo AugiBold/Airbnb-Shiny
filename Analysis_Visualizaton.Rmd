@@ -11,10 +11,11 @@ Try executing this chunk by clicking the *Run* button within the chunk or by pla
 library(tidyverse)
 library(lubridate)
 library(dplyr)
+library(ggplot2)
 ```
 Airbnb, more than just a vacation rental company, was one of the market disruptors that started in 2008 which destabilized the hotel industry and changed the way people traveled by offering more options in booking places to stay.  It got so popular that more and more people started using it as a business which eventually led to certain cities to put in place regulations on short term rentals.  
 
-One of those cities is Washington, D.C and I obtained my data from insideairbnb.com, an independent non-commercial project that gathers publicly available Airbnb information with the express purpose of promoting awareness on this issue of affecting local neighborhoods and established real-estate businesses.  The dataset only provided listings that were available for the last 12 months in Washington, D.C.  With that in mind, through this project I wanted to explore 2 questions particularly in this post Covid state:
+One of those cities is Washington, D.C and I obtained my data from insideairbnb.com, an independent non-commercial project that gathers publicly available Airbnb information with the express purpose of promoting awareness on this issue of Airbnb adversely affecting local neighborhoods and established real-estate businesses.  The dataset only provided listings that were available for the last 12 months in Washington, D.C.  With that in mind, through this project I wanted to explore 2 questions particularly in the current post Covid state:
 
 1) As a potential guest, where are the more affordable yet well rated and reviewed listings? 
 2) As a potential host, where is the most demand in the D.C market for listings? 
@@ -54,30 +55,53 @@ This sort of correlates with the number of reviews having 0 values when checked:
 ```{r}
 listings %>% filter(number_of_reviews==0) %>% summarise(count = n())
 ```
-Let's look at the General Distribution of the Prices to get a feel for the pricing landscape: 
+Noticed that there were 6 listings with $0 price which doesn't help our analysis so I excluded them: 
+```{r}
+listings = listings %>% filter(price > 0)
+dim(listings)
+```
+
+Let's look at the General Distribution of the Prices to get a feel for the pricing landscape:
+Because 94% of listings fall under $500 per night, I plotted the distribution within this range for better visibility. 
 
 ```{r}
+listings %>% filter(price < 500) %>% summarise(count = n(), under_500_pct = count/length(listings$price)*100) 
+```
+
+
+```{r}
+listings %>% filter(price < 500) %>% ggplot(aes(x = price)) +
+  geom_histogram(aes(y = ..density..), color = "blue", fill = "darkseagreen3") + geom_density(alpha = .2, fill="chartreuse") + xlab('Price ($)') + ylab('Density') + ggtitle('Price Distribution') 
+```
+As can be seen, the distribution is right skewed meaning that the very few listings priced at very high amounts influence the shape whereas we can see from the plot that most of the listings is centered around $100 and is under $200.  From the summary info before, we know that the median is $114 and mean is $189 which is pretty affordable keeping in mind that this is the capital city of the United States.  Effects from COVID-19 probably influenced the cost to be lower than what's considered normal in a metropolitan area.  The limitation of the dataset is that only the past 12 months were provided by the organization.  
+
+
+Let's look at the Property/Room Type and how it affects price distribution:  
+
+```{r}
+listings %>% filter(price < 300) %>% ggplot(aes(x=price, group = room_type, fill=room_type)) + geom_density(adjust = 1.5, alpha =.4) + xlab('Price ($)') + ylab('% of Total') + ggtitle('Price Density by Room Type') 
+```
+What is the average price per Neighborhood?  
+
+```{r}
+high_10_price = listings %>% group_by(neighbourhood) %>% summarise(avg_price = mean(price)) %>% arrange(desc(avg_price)) %>% top_n(10)
+
+high_10_price %>%
+  ggplot(aes(x=reorder(neighbourhood, avg_price), y=avg_price)) + geom_bar(stat='identity', color = 'palegreen3', fill = 'palegreen3') + coord_flip() + geom_text(aes(label= round(avg_price)), nudge_y=-50, color='black') + ylab('Avg price ($)') + xlab('Neighborhood') + ggtitle('Highest Avg. Price by Neighborhood') + theme_bw() + theme(text=element_text(size = 8))
 
 ```
 
 
 ```{r}
+#low_10_price = listings %>% group_by(neighbourhood) %>% summarise(avg_price = mean(price)) %>% slice_min(avg_price, n =10)
+
+low_10_price %>%
+  ggplot(aes(x=reorder(neighbourhood, -avg_price), y=avg_price)) + geom_bar(stat='identity', color = 'palegreen3', fill = 'palegreen3') + scale_y_continuous(limits = c(0, 200)) + coord_flip() + geom_text(aes(label= round(avg_price)), nudge_y=-20, color='black') + ylab('Avg price ($)') + xlab('Neighborhood') + ggtitle('Lowest Avg. Price by Neighborhood') + theme_bw() + theme(text=element_text(size = 8))
 ```
 
 
 ```{r}
-```
 
-
-```{r}
-```
-
-
-```{r}
-```
-
-
-```{r}
 ```
 
 
