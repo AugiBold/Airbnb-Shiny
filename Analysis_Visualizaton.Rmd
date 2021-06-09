@@ -13,15 +13,18 @@ library(lubridate)
 library(dplyr)
 library(ggplot2)
 ```
+Introduction: 
 Airbnb, more than just a vacation rental company, was one of the market disruptors that started in 2008 which destabilized the hotel industry and changed the way people traveled by offering more options in booking places to stay.  It got so popular that more and more people started using it as a business which eventually led to certain cities to put in place regulations on short term rentals.  
-
-One of those cities is Washington, D.C and I obtained my data from insideairbnb.com, an independent non-commercial project that gathers publicly available Airbnb information with the express purpose of promoting awareness on this issue of Airbnb adversely affecting local neighborhoods and established real-estate businesses.  The dataset only provided listings that were available for the last 12 months in Washington, D.C.  With that in mind, through this project I wanted to explore 2 questions particularly in the current post Covid state:
-
+Data: 
+One of those cities is Washington, D.C and I obtained my data from insideairbnb.com, an independent non-commercial project that gathers publicly available Airbnb information with the express purpose of promoting awareness on this issue of Airbnb adversely affecting local neighborhoods and established real-estate businesses.  The dataset only provided listings that were available for the last 12 months in Washington, D.C.  
+Objective:
+With that in mind, through this project I wanted to explore 2 questions particularly in the current post Covid state:
 1) As a potential guest, where are the more affordable yet well rated and reviewed listings? 
-2) As a potential host, where is the most demand in the D.C market for listings? 
+2) As a potential host, which area has the most demand and likelihood of occupancy in the D.C market for listings? 
 
 The main data I will be working with is the listings data and it includes all kinds of data from which I selected data regarding the following:listings, coordinate location, neighborhood, price per night, room type, number of reviews, review scores, and availability days per year.
 
+Read in the data: 
 ```{r}
 listings = read.csv('./listings.csv')
 listings_detailed = read.csv('./listings_detailed.csv')
@@ -29,12 +32,12 @@ head(listings)
 head(listings_detailed)
 
 ```
-I first select data fields pertaining to my question of interest from the main dataset and also extract the review-score data from the listings_detailed dataset and join it to the main dataset to capture the rating. 
+I selected fields pertaining to my question of interest from the main dataset and also extracted the review-score data from the listings_detailed dataset and joined it to the main dataset to capture the rating information.  
 ```{r}
 listings = listings %>% select('id', 'name', 'host_id', 'neighbourhood', 'latitude', 'longitude', 'room_type', 'price', 'number_of_reviews', 'calculated_host_listings_count', 'availability_365') 
 head(listings, 3)
 ```   
-Join the data and clean up the long names into short, to-the-point names for the columns.  
+Join the data and clean up the long names into short, to-the-point column names.    
 ```{r}
 rating = listings_detailed %>% select('id', 'review_scores_rating')
 listings = inner_join(listings, rating, by = 'id')
@@ -42,20 +45,20 @@ listings = listings %>% rename(host_listings = 'calculated_host_listings_count',
 head(listings)
 ```
 
-Let's get a general sense of the data:
+Let's get a general sense of the data and look for null values: 
 ```{r}
 str(listings)
 summary(listings)
 colSums(is.na(listings))
 ```
 As we can see, the rating field has 2373 NULL/NaN values making up about 30% of all the data.  
-For general analysis, we will keep the data for sure, but when we are considering rating alone, we will omit the null value.  
+For general analysis, we will keep the data for sure, but when we are analyzing rating feature alone, we will only consider the non-missing data.    
 This sort of correlates with the number of reviews having 0 values when checked: 
 
 ```{r}
 listings %>% filter(number_of_reviews==0) %>% summarise(count = n())
 ```
-Noticed that there were 6 listings with $0 price which doesn't help our analysis so I excluded them: 
+Noticed that there were 6 listings with $0 price which doesn't make sense so I excluded them: 
 ```{r}
 listings = listings %>% filter(price > 0)
 dim(listings)
@@ -70,22 +73,29 @@ listings %>% filter(price < 500) %>% summarise(count = n(), under_500_pct = coun
 
 
 ```{r}
-listings %>% filter(price < 500) %>% ggplot(aes(x = price)) +
+price_distribution = listings %>% filter(price < 500) %>% ggplot(aes(x = price)) +
   geom_histogram(aes(y = ..density..), color = "blue", fill = "darkseagreen3") + geom_density(alpha = .2, fill="chartreuse") + xlab('Price ($)') + ylab('Density') + ggtitle('Price Distribution') + theme_bw() 
+price_distribution
 ```
-As can be seen, the distribution is right skewed meaning that the very few listings priced at very high amounts influence the shape whereas we can see from the plot that most of the listings is centered around $100 and is under $200.  From the summary info before, we know that the median is $114 and mean is $189 which is pretty affordable keeping in mind that this is the capital city of the United States.  Effects from COVID-19 probably influenced the cost to be lower than what's considered normal in a metropolitan area.  The limitation of the dataset is that only the past 12 months were provided by the organization.  
+As can be seen, the distribution is right skewed meaning that the very few listings priced at very high price influence the distribution shape whereas we can see from the plot that most of the listings is centered around $100 and is under $200.  From the summary info before, we know that the median is $114 and mean is $189 which is pretty affordable keeping in mind that this is the capital city of the United States.  Effects from COVID-19 probably influenced the cost to be lower than what's considered normal in a metropolitan area.  The limitation of the dataset is that only the past 12 months were provided by the organization so I was limited to doing analysis for the current year of April 2020 - April 2021.  
 
 
 Which Room type has the most listings? 
 ```{r}
-listings %>% group_by(room_type) %>% summarise(count = sum(n())) %>% arrange(desc(count)) %>% ggplot(aes(x=reorder(room_type, -count), y=count)) + geom_bar(stat='identity', color = 'lightcoral', fill = 'lightcoral') + ylab('# of Listings') + xlab('Room Type') + ggtitle('72% of Listings are Entire Home/Apt') + theme_bw() 
+room_type_count =listings %>% group_by(room_type) %>% summarise(count = sum(n())) %>% arrange(desc(count)) %>% ggplot(aes(x=reorder(room_type, -count), y=count)) + geom_bar(stat='identity', color = 'lightcoral', fill = 'lightcoral') + ylab('# of Listings') + xlab('Room Type') + ggtitle('72% of Listings are Entire Home/Apt') + theme_bw() 
+room_type_count
 ```
+```{r}
+#listings %>% filter(room_type == ')
+```
+
 
 
 Let's look at the Property/Room Type and how it affects price distribution:  
 
 ```{r}
-listings %>% filter(price < 300) %>% ggplot(aes(x=price, group = room_type, fill=room_type)) + geom_density(adjust = 1.5, alpha =.4) + xlab('Price ($)') + ylab('% of Total') + ggtitle('Price Density by Room Type') + theme_bw() 
+price_density_room_type = listings %>% filter(price < 300) %>% ggplot(aes(x=price, group = room_type, fill=room_type)) + geom_density(adjust = 1.5, alpha =.4) + xlab('Price ($)') + ylab('% of Total') + ggtitle('Price Density by Room Type') + theme_bw() 
+price_density_room_type
 ```
 
 What is the average price per Neighborhood?  
@@ -94,7 +104,7 @@ What is the average price per Neighborhood?
 high_10_price = listings %>% group_by(neighbourhood) %>% summarise(avg_price = mean(price)) %>% arrange(desc(avg_price)) %>% top_n(10)
 
 high_10_price %>%
-  ggplot(aes(x=reorder(neighbourhood, avg_price), y=avg_price)) + geom_bar(stat='identity', color = 'palegreen3', fill = 'palegreen3') + coord_flip() + geom_text(aes(label= round(avg_price)), nudge_y=-50, color='black') + ylab('Avg price ($)') + xlab('Neighborhood') + ggtitle('Highest Avg. Price by Neighborhood') + theme_bw() + theme(text=element_text(size = 8))
+  ggplot(aes(x=reorder(neighbourhood, avg_price), y=avg_price)) + geom_bar(stat='identity', color = 'palegreen3', fill = 'palegreen3') + coord_flip() + geom_text(aes(label= round(avg_price)), nudge_y=-50, color='black') + ylab('Avg price ($)') + xlab('Neighborhood') + ggtitle('Neighborhoods w. the Highest Avg. Price') + theme_bw() + theme(text=element_text(size = 8))
 
 ```
 
@@ -103,7 +113,7 @@ high_10_price %>%
 low_10_price = listings %>% group_by(neighbourhood) %>% summarise(avg_price = mean(price)) %>% slice_min(avg_price, n =10)
 
 low_10_price %>%
-  ggplot(aes(x=reorder(neighbourhood, -avg_price), y=avg_price)) + geom_bar(stat='identity', color = 'palegreen3', fill = 'palegreen3') + scale_y_continuous(limits = c(0, 200)) + coord_flip() + geom_text(aes(label= round(avg_price)), nudge_y=-20, color='black') + ylab('Avg price ($)') + xlab('Neighborhood') + ggtitle('Lowest Avg. Price by Neighborhood') + theme_bw() + theme(text=element_text(size = 8))
+  ggplot(aes(x=reorder(neighbourhood, -avg_price), y=avg_price)) + geom_bar(stat='identity', color = 'palegreen3', fill = 'palegreen3') + scale_y_continuous(limits = c(0, 200)) + coord_flip() + geom_text(aes(label= round(avg_price)), nudge_y=-20, color='black') + ylab('Avg price ($)') + xlab('Neighborhood') + ggtitle('Neighborhoods w. the Lowest Avg. Price') + theme_bw() + theme(text=element_text(size = 8))
 ```
 
 Since the dataset was missing Neighborhood Group information making it difficult to group the 39 neighborhoods present in the data to show trends in the landscape, I searched and found that Washington, D.C groups its neighborhoods in 8 wards, historically.  So I first populated the neighborhoods data file containing the 39 neighborhood names with the corresponding ward based off of Wikipedia and publicly available city information.  Then I joined it to the main listings dataset to capture the ward/neighborhood grouping factor as a new field.  
@@ -119,56 +129,63 @@ Now that we have ward info - a way to group the neighborhoods, let's see the ave
 ```{r}
 ward_avg_price = listings %>% group_by(ward) %>% summarise(avg_price = mean(price)) %>% arrange(avg_price)
 ward_avg_price %>%
-  ggplot(aes(x=reorder(ward, avg_price), y=avg_price)) + geom_bar(stat='identity', color = 'palegreen3', fill = 'palegreen3')  + geom_text(aes(label= round(avg_price)), nudge_y=-20, color='black') + ylab('Avg price ($)') + xlab('Neighborhood Group') + ggtitle('Daily Average Price by Neighborhood') + theme_bw()
+  ggplot(aes(x=reorder(ward, avg_price), y=avg_price)) + geom_bar(stat='identity', color = 'palegreen3', fill = 'palegreen3')  + geom_text(aes(label= round(avg_price)), nudge_y=-20, color='black') + ylab('Avg price ($)') + xlab('Neighborhood Group') + ggtitle('Average Price by Ward (Neighborhood Group)') + theme_bw()
 ```
-Being the Capital city, a unique characteristic to Washington D.C is that it is one of the most visited destinations in the world and most who visit it, if not all, visit the landmarks around the National Mall which has been rated as the most trafficked landmark area.  Many public and large events take place for various causes.  Therefore, I wanted to explore if listings located closer to this landmark was more popular or more likely to be booked (demand) and also if there was correlation between the price and the proximity. So I found out the National Mall coordinates (38.8875° N, 77.0364° W) and created a new proximity column to each listings called mall_proximity.  
+From reading about D.C and knowing a little about certain parts of the city, this makes sense that the closer you get to the Downtown area(Ward 2) with the historic monuments and landmarks(Ward 2) along with affluent residential area(Ward 3) and government buildings(Ward 6) where most of the large events and public gatherings take place the pricier the listings get. On the other hand, Wards 5,7,8 are located furthest away from the Downtown area and can be shown to have the lowest average price per day from the graph above. 
+
+
+Let's see how much of the Market Size each Ward makes up - by multiplying the available days per year of each listing with its price and summing up by the ward: 
 
 ```{r}
-head(listings)
-```
+listings = listings %>% mutate(availability_price = availability * price)
 
+market_size = sum(listings$availability_price)
+
+market_size_by_ward = listings %>% group_by(ward) %>% summarise(ward_market_size = sum(availability_price), ward_ratio = round(ward_market_size/market_size*100)) %>% arrange(desc(ward_market_size))
+
+market_size_by_ward
+```
+Let's visualize it: 
 
 ```{r}
+market_size_by_ward %>% ggplot(aes(fill = ward, y=ward_ratio, x='')) + 
+    geom_bar(position="fill", stat="identity") + scale_y_continuous(labels=scales::percent) + ylab('Ward %') + xlab('Market Size') + ggtitle('Market Size by Ward % - Top 3 wards make up 75% !') + theme_bw() 
 ```
+It's interesting to see from the Market Size % Barchart that the top 3 wards - Wards 2, 6, and 1 - contribute 75% of the total Market size.  These same 3 wards are located closest to the Downtown area of Washington D.C supporting the earlier trend seen in Average Price by Neighborhood Group Barplot.  
 
+Let's see if this emerging trend is related to Reviews - there are 2 kinds of review fields - 1st being number of reviews-to-date for the listing and the 2nd being reviews the listing has in the last 12 months, latter of which I missed to capture from the listings_detailed dataset earlier so I am going to capture it now and join it to our main dataset to add to the analysis.  
+
+This is actually quite important as the reviews-to-date field will represent how actively occupied and popular the listing has been ever since it has been active on the market which could be for years.  Whereas for the reviews-in-the-last-12-months field will be more indicative of how likely the listing is currently to be in demand for bookings.  Therefore the reviews field for the last 12 months will be used to compute the likelihood of listings to be in demand when compared to other listings.    
 
 ```{r}
+last_yr_reviews = listings_detailed %>% select('id', 'number_of_reviews_ltm')
+listings = inner_join(listings, last_yr_reviews, by = 'id') 
+listings
 ```
-
+Now that we have both types of review counts, let's first see the Reviews-to-date for listings by each Neighborhood Group (ward): 
 
 ```{r}
+total_reviews = sum(listings$number_of_reviews)
+reviews_by_ward = listings %>% group_by(ward) %>% summarise(ward_reviews = sum(number_of_reviews), ward_review_ratio=round(ward_reviews/total_reviews*100)) %>% arrange(desc(ward_reviews))
+
+reviews_by_ward %>%
+  ggplot(aes(x=reorder(ward, -ward_review_ratio), y=ward_review_ratio)) + geom_bar(stat='identity', color = 'cadetblue2', fill = 'cadetblue2')  + geom_text(aes(label= paste0(ward_review_ratio, '%')), nudge_y= -1, color='black') + ylab('Review To Date %') + xlab('Neighborhood Group') + ggtitle('Reviews To Date % by Neighborhood Group') + theme_bw()
+
 ```
 
+The same top 3 wards(Wards 6,2,1) that made up 75% of the total Market Size also account for 67% of All Reviews to date.  This makes perfect sense as one would naturally expect most of the reviews to come from 3/4ths of the Market.  
+
+How about Ratings? - since there is minimal and insignificant difference among the Neighborhood Groups, we will not explore further.
 
 ```{r}
+ratings_by_ward = listings %>% filter(!is.na(rating)) %>% group_by(ward) %>% summarise(ward_rating = mean(rating)) %>% arrange(desc(ward_rating))
+ratings_by_ward
 ```
-
-
+Let's determine where the likelihood of a listing is to be more in demand by taking the ratio between the last 12 month current Reviews and its availability by neighborhood group (ward).  Using the last 12 month review count as an indicator of likelihood of occupancy and the listing available days as a factor of meeting the market demand:  
 ```{r}
-```
-
-
-```{r}
-```
-
-
-```{r}
-```
-
-
-```{r}
-```
-
-
-```{r}
-```
-
-
-```{r}
-```
-
-
-```{r}
+total_reviews_ltm = sum(listings$number_of_reviews_ltm)
+total_availability = sum(listings$availability)
+listings %>% group_by(ward) %>% summarise(ward_reviews_ltm = sum(number_of_reviews_ltm), ward_availability = sum(availability), reviews_per_availability = ward_reviews_ltm/ward_availability) %>% arrange(desc(reviews_per_availability))
 ```
 
 Add a new chunk by clicking the *Insert Chunk* button on the toolbar or by pressing *Ctrl+Alt+I*.
