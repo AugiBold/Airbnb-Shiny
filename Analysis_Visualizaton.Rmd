@@ -181,13 +181,69 @@ How about Ratings? - since there is minimal and insignificant difference among t
 ratings_by_ward = listings %>% filter(!is.na(rating)) %>% group_by(ward) %>% summarise(ward_rating = mean(rating)) %>% arrange(desc(ward_rating))
 ratings_by_ward
 ```
-Let's determine where the likelihood of a listing is to be more in demand by taking the ratio between the last 12 month current Reviews and its availability by neighborhood group (ward).  Using the last 12 month review count as an indicator of likelihood of occupancy and the listing available days as a factor of meeting the market demand:  
+Let's see the trend for the Reviews of last 12 months by Neighborhood Group:
+```{r}
+total_reviews_ltm = sum(listings$number_of_reviews_ltm)
+
+reviews_ltm_by_ward = listings %>% group_by(ward) %>% summarise(ward_reviews_ltm = sum(number_of_reviews_ltm), ward_review_ltm_ratio=round(ward_reviews_ltm/total_reviews_ltm*100)) %>% arrange(desc(ward_reviews_ltm))
+
+reviews_ltm_by_ward %>%
+  ggplot(aes(x=reorder(ward, -ward_review_ltm_ratio), y=ward_review_ltm_ratio)) + geom_bar(stat='identity', color = 'deepskyblue', fill = 'deepskyblue')  + geom_text(aes(label= paste0(ward_review_ltm_ratio, '%')), nudge_y= -1, color='white') + ylab('Last 12 months Review %') + xlab('Neighborhood Group') + ggtitle('Last 12 months Review % by Neighborhood Group') + theme_bw()
+```
+The last 12 months Review % shows that the most current reviews trends haven't changed much from the Reviews To Date as the top 4 wards have stayed the same contributing about the same % of the Reviews.  Ward 5 has gone up a place by owning 2% more reviews in the last year compared to Ward 1 so this is good to know from a potential host standpoint.  
+
+Now that we have looked at the trends in Reviews, I can finally answer my 1st question of interest: As a potential guest, Ward 1 and Ward 5 (as a second option) seems to offer the most affordable price on average (potential savings of $83 per day) while being considerably frequently reviewed and located closest to the ward with the downtown area with all the historic landmarks.  Ward 1 and Ward 5 as a backup option also makes up a sizeable portion of the Market size which means potential guests will have enough variety listings to choose from.  So here are the Neighborhoods in Ward 1 and Ward 5 that you can search to get a sweet deal showing their average daily price:
+
+```{r}
+#unique(listings_clean$ward)
+#listings = listings %>% mutate(ward = gsub("Ward 1 ", "Ward 1", ward))
+``` 
+
+Ward 1 (Best option for guest - closer to downtown): 
+
+```{r}
+
+listings %>% filter(ward == "Ward 1") %>% group_by(neighbourhood) %>% summarise(avg_price = mean(price)) %>% arrange(avg_price) %>%
+  ggplot(aes(x=reorder(neighbourhood, -avg_price), y=avg_price)) + geom_bar(stat='identity', color = 'lightcoral', fill = 'lightcoral') +  coord_flip() + geom_text(aes(label= round(avg_price)), nudge_y=-10, color='white') + ylab('Avg price ($)') + xlab('Neighborhood') + ggtitle('Ward 1 Average Price by Neighborhood') + theme_bw() + theme(text=element_text(size = 8))
+
+
+  # ggplot(aes(x=reorder(neighbourhood, avg_price), y=avg_price)) + geom_bar(stat='identity', color = 'palegreen3', fill = 'palegreen3') + coord_flip() + geom_text(aes(label= round(avg_price)), nudge_x=-50, color='black') + ylab('Avg price ($)') + xlab('Neighborhood') + ggtitle('Neighborhoods w. the Highest Avg. Price') + theme_bw() + theme(text=element_text(size = 8))
+
+```
+
+Ward 5 (Alternative Better option for guest): 
+
+```{r}
+listings %>% filter(ward == "Ward 5") %>% group_by(neighbourhood) %>% summarise(avg_price = mean(price)) %>% arrange(avg_price) %>%
+  ggplot(aes(x=reorder(neighbourhood, -avg_price), y=avg_price)) + geom_bar(stat='identity', color = 'lightcoral', fill = 'lightcoral') +  coord_flip() + geom_text(aes(label= round(avg_price)), nudge_y=-10, color='white') + ylab('Avg price ($)') + xlab('Neighborhood') + ggtitle('Ward 5 Average Price by Neighborhood)') + theme_bw() + theme(text=element_text(size = 8))
+
+```
+
+Let's determine where the likelihood of a listing is to be more in demand by taking the ratio between the last 12 month current Reviews and its availability by neighborhood group (ward).  Using the last 12 month review count as an indicator of likelihood of occupancy and the listing available days as a factor of meeting the market demand: 
 ```{r}
 total_reviews_ltm = sum(listings$number_of_reviews_ltm)
 total_availability = sum(listings$availability)
-listings %>% group_by(ward) %>% summarise(ward_reviews_ltm = sum(number_of_reviews_ltm), ward_availability = sum(availability), reviews_per_availability = ward_reviews_ltm/ward_availability) %>% arrange(desc(reviews_per_availability))
+likelihood = listings %>% group_by(ward) %>% summarise(ward_reviews_ltm = sum(number_of_reviews_ltm), ward_availability = sum(availability), reviews_per_availability = ward_reviews_ltm/ward_availability) %>% arrange(desc(reviews_per_availability))
+likelihood
 ```
+Here I can address the 2nd Question of my interest: Ward 5 and 1 would be the wards I would look into potentially put a listing because they have the highest likelihood for demand currently and they are good pick for people who are looking for affordable options compared to Downtown area listings which are more expensive.  Ward 7 isn't recommended because it only makes up 3% of market size having less information to make an investment decision. However on the other hand I guess it could be an option due to less competition so we may keep an eye on it.  
 
+Visualization:
+```{r}
+listings %>% group_by(ward) %>% summarise(ward_reviews_ltm = sum(number_of_reviews_ltm), ward_availability = sum(availability), reviews_per_availability = ward_reviews_ltm/ward_availability) %>% arrange(desc(reviews_per_availability)) %>%
+  
+  ggplot(aes(x=reorder(ward, -reviews_per_availability ), y=reviews_per_availability)) + geom_bar(stat='identity', color = 'deepskyblue', fill = 'deepskyblue') + ylab('Reviews per availability') + xlab('Neighborhood Group') + ggtitle('Likelihood of Demand by Neighborhood Group') + theme_bw() 
+
+  
+  # ggplot(aes(x=reorder(ward, -reviews_per_availability), y=reviews_per_availability)) + geom_bar(stat='identity', color = 'deepskyblue', fill = 'deepskyblue') + ylab('Reviews per availability') + xlab('Neighborhood Group') + ggtitle('Likelihood of Demand by Neighborhood Group) + theme_bw()
+```
+Next Steps:
+
+- Obtain data from previous years for better comparison and trends over the years
+- Build a predictive model to apply to new data 
+- Complete the Shiny app with interactive Map features
+
+ 
 Add a new chunk by clicking the *Insert Chunk* button on the toolbar or by pressing *Ctrl+Alt+I*.
 
 When you save the notebook, an HTML file containing the code and output will be saved alongside it (click the *Preview* button or press *Ctrl+Shift+K* to preview the HTML file).
