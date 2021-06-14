@@ -85,12 +85,6 @@ Which Room type has the most listings?
 room_type_count =listings %>% group_by(room_type) %>% summarise(count = sum(n())) %>% arrange(desc(count)) %>% ggplot(aes(x=reorder(room_type, -count), y=count)) + geom_bar(stat='identity', color = 'lightcoral', fill = 'lightcoral') + ylab('# of Listings') + xlab('Room Type') + ggtitle('72% of Listings are Entire Home/Apt') + theme_bw() 
 room_type_count
 ```
-```{r}
-#listings %>% filter(room_type == ')
-```
-
-
-
 Let's look at the Property/Room Type and how it affects price distribution:  
 
 ```{r}
@@ -151,7 +145,7 @@ Let's visualize it:
 market_size_by_ward %>% ggplot(aes(fill = ward, y=ward_ratio, x='')) + 
     geom_bar(position="fill", stat="identity") + scale_y_continuous(labels=scales::percent) + ylab('Ward %') + xlab('Market Size') + ggtitle('Market Size by Ward % - Top 3 wards make up 75% !') + theme_bw() 
 ```
-It's interesting to see from the Market Size % Barchart that the top 3 wards - Wards 2, 6, and 1 - contribute 75% of the total Market size.  These same 3 wards are located closest to the Downtown area of Washington D.C supporting the earlier trend seen in Average Price by Neighborhood Group Barplot.  
+It's interesting to see from the Market Size % stacked Barchart that the top 3 wards - Wards 2, 6, and 1 - contribute 75% of the total Market size.  These same 3 wards are located closest to the Downtown area of Washington D.C supporting the earlier trend seen in Average Price by Neighborhood Group Barplot.  
 
 Let's see if this emerging trend is related to Reviews - there are 2 kinds of review fields - 1st being number of reviews-to-date for the listing and the 2nd being reviews the listing has in the last 12 months, latter of which I missed to capture from the listings_detailed dataset earlier so I am going to capture it now and join it to our main dataset to add to the analysis.  
 
@@ -195,8 +189,8 @@ The last 12 months Review % shows that the most current reviews trends haven't c
 Now that we have looked at the trends in Reviews, I can finally answer my 1st question of interest: As a potential guest, Ward 1 and Ward 5 (as a second option) seems to offer the most affordable price on average (potential savings of $83 per day) while being considerably frequently reviewed and located closest to the ward with the downtown area with all the historic landmarks.  Ward 1 and Ward 5 as a backup option also makes up a sizeable portion of the Market size which means potential guests will have enough variety listings to choose from.  So here are the Neighborhoods in Ward 1 and Ward 5 that you can search to get a sweet deal showing their average daily price:
 
 ```{r}
-#unique(listings_clean$ward)
-#listings = listings %>% mutate(ward = gsub("Ward 1 ", "Ward 1", ward))
+unique(listings$ward)
+listings = listings %>% mutate(ward = gsub("Ward 1 ", "Ward 1", ward))
 ``` 
 
 Ward 1 (Best option for guest - closer to downtown): 
@@ -206,9 +200,7 @@ Ward 1 (Best option for guest - closer to downtown):
 listings %>% filter(ward == "Ward 1") %>% group_by(neighbourhood) %>% summarise(avg_price = mean(price)) %>% arrange(avg_price) %>%
   ggplot(aes(x=reorder(neighbourhood, -avg_price), y=avg_price)) + geom_bar(stat='identity', color = 'lightcoral', fill = 'lightcoral') +  coord_flip() + geom_text(aes(label= round(avg_price)), nudge_y=-10, color='white') + ylab('Avg price ($)') + xlab('Neighborhood') + ggtitle('Ward 1 Average Price by Neighborhood') + theme_bw() + theme(text=element_text(size = 8))
 
-
-  # ggplot(aes(x=reorder(neighbourhood, avg_price), y=avg_price)) + geom_bar(stat='identity', color = 'palegreen3', fill = 'palegreen3') + coord_flip() + geom_text(aes(label= round(avg_price)), nudge_x=-50, color='black') + ylab('Avg price ($)') + xlab('Neighborhood') + ggtitle('Neighborhoods w. the Highest Avg. Price') + theme_bw() + theme(text=element_text(size = 8))
-
+ 
 ```
 
 Ward 5 (Alternative Better option for guest): 
@@ -242,6 +234,13 @@ Next Steps:
 - Obtain data from previous years for better comparison and trends over the years
 - Build a predictive model to apply to new data 
 - Complete the Shiny app with interactive Map features
+
+```{r}
+listings_shiny = listings 
+write.csv(listings_shiny,"C:/Users/oyb50/Documents/Augi/NYC DS Academy/Bootcamp/Projects/Shiny Project/Airbnb-Shiny/listings_shiny.csv", row.names = FALSE)
+
+```
+
 
  
 Add a new chunk by clicking the *Insert Chunk* button on the toolbar or by pressing *Ctrl+Alt+I*.
